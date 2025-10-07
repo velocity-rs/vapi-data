@@ -1,0 +1,33 @@
+{ "index_model": {
+            "type": "array",
+            "minItems": 0,
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 32
+                    },
+                    "fields": {
+                        "$ref": "#/defs/map_string"
+                    },
+                    "options": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "unique": {
+                                "type": "boolean"
+                            },
+                            "sparse": {
+                                "type": "boolean"
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "fields"
+                ]
+            }
+        }
+    }

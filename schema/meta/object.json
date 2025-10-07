@@ -1,0 +1,57 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Velocity Object Schema",
+    "type": "object",
+    "properties": {
+        "org": {
+            "type": "string",
+            "maxLength": 24,
+            "minLength": 3
+        },
+        "app": {
+            "type": "string",
+            "maxLength": 24,
+            "minLength": 3
+        },
+        "version": {
+            "type": "string",
+            "pattern": "v[0-9]{1,}.[0-9]{1,}.[0-9]{1,}"
+        },
+        "schema": {
+            "type": "object",
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "https://json-schema.org/draft/2020-12/schema#"
+                    ]
+                },
+                "$id": {
+                    "type": "string",
+                    "format": "uri"
+                    
+                },
+                "additionalProperties": {
+                    "type": "boolean"
+                },
+                "properties": {
+                    "type": "object"
+                }
+            },
+            "required": [
+                "$schema",
+                "properties",
+                "additionalProperties"
+            ]
+        },
+        "required":[]
+    },
+    "additionalProperties": false,
+    "required": [
+        "version",
+        "namespace",
+        "resource",
+        "resource_version",
+        "schema"
+    ]
+}

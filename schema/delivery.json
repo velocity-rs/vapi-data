@@ -1,0 +1,17 @@
+{
+    "org": "asl",
+    "app": "wms",
+    "object": "del",
+    "version": "v1",
+    "object_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema#",
+        "title": "Delivery",
+        "type": "object",
+        "properties": {
+            "deliveryNo": {
+                "type": "number"
+            }
+        },
+        "additionalProperties": false
+    }
+}

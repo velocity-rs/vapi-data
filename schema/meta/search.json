@@ -1,0 +1,43 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema#",
+    "title": "Search Schemas",
+    "type": "array",
+    "additionalProperties": false,
+    "items": {
+        "properties": {
+            "name": {
+                "type": "string",
+                "maxLength": 12,
+                "minLength": 3
+            },
+            "filter": {
+                "type": "object"
+            },
+            "transform": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "operation": {
+                            "type": "string",
+                            "enum": [
+                                "shift",
+                                "default",
+                                "remove"
+                            ]
+                        },
+                        "spec": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "required": [
+            "name",
+            "filter",
+            "transform"
+        ]
+    }
+}

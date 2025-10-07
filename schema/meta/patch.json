@@ -1,0 +1,208 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema#",
+    "title": "Patch Schema",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "filter": {
+            "type": "object"
+        },
+        "patch": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "op": {
+                        "type": "string",
+                        "enum": [
+                            "add",
+                            "remove",
+                            "replace",
+                            "copy",
+                            "move",
+                            "test"
+                        ]
+                    },
+                    "path": {
+                        "type": "string"
+                    },
+                    "from": {
+                        "type": "string"
+                    },
+                    "value": {}
+                },
+                "required": [
+                    "op"
+                ],
+                "allOf": [
+                    {
+                        "if": {
+                            "properties": {
+                                "op": {
+                                    "const": "add"
+                                }
+                            },
+                            "required": [
+                                "op"
+                            ]
+                        },
+                        "then": {
+                            "required": [
+                                "path",
+                                "value"
+                            ],
+                            "not": {
+                                "anyOf": [
+                                    {
+                                        "required": [
+                                            "from"
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "if": {
+                            "properties": {
+                                "op": {
+                                    "const": "remove"
+                                }
+                            },
+                            "required": [
+                                "op"
+                            ]
+                        },
+                        "then": {
+                            "required": [
+                                "path"
+                            ],
+                            "not": {
+                                "anyOf": [
+                                    {
+                                        "required": [
+                                            "from",
+                                            "value"
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "if": {
+                            "properties": {
+                                "op": {
+                                    "const": "replace"
+                                }
+                            },
+                            "required": [
+                                "op"
+                            ]
+                        },
+                        "then": {
+                            "required": [
+                                "path",
+                                "value"
+                            ],
+                            "not": {
+                                "anyOf": [
+                                    {
+                                        "required": [
+                                            "from"
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "if": {
+                            "properties": {
+                                "op": {
+                                    "const": "copy"
+                                }
+                            },
+                            "required": [
+                                "op"
+                            ]
+                        },
+                        "then": {
+                            "required": [
+                                "from",
+                                "path"
+                            ],
+                            "not": {
+                                "anyOf": [
+                                    {
+                                        "required": [
+                                            "value"
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "if": {
+                            "properties": {
+                                "op": {
+                                    "const": "move"
+                                }
+                            },
+                            "required": [
+                                "op"
+                            ]
+                        },
+                        "then": {
+                            "required": [
+                                "from",
+                                "path"
+                            ],
+                            "not": {
+                                "anyOf": [
+                                    {
+                                        "required": [
+                                            "value"
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "if": {
+                            "properties": {
+                                "op": {
+                                    "const": "test"
+                                }
+                            },
+                            "required": [
+                                "op"
+                            ]
+                        },
+                        "then": {
+                            "required": [
+                                "path",
+                                "value"
+                            ],
+                            "not": {
+                                "anyOf": [
+                                    {
+                                        "required": [
+                                            "from"
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    "required": [
+        "filter",
+        "patch"
+    ]
+}
