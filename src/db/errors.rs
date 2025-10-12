@@ -1,17 +1,11 @@
 use std::fmt::Display;
 
+use log::trace;
+use mongodb::error::WriteError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use super::pagination::error::CursorError;
-
-#[derive(Error, Debug, Serialize, Deserialize)]
-pub enum DBError {
-    #[error("Unexpected error in DB")]
-    UnexpectedError,
-    #[error("Database Connection Error {}", 0)]
-    DBConnectionError(String),
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MongoError {
@@ -27,6 +21,8 @@ impl Display for MongoError {
 
 impl From<mongodb::error::Error> for MongoError {
     fn from(e: mongodb::error::Error) -> Self {
+        trace!("MongoDB Error: kind: {}, message: {}", e.kind, e);
+
         return MongoError {
             kind: e.kind.to_string(),
             message: e.to_string(),

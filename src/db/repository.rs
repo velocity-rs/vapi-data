@@ -31,15 +31,22 @@ impl Repository {
         info!("Initializing MongoDB Repository");
         return match client::init().await {
             Ok(client) => {
-                let db_name: String = config::get::<String>("NAMESPACE").unwrap_or_else(|| {
-                    error!("DB Name configuration is not set");
+                let db_name: String = config::get::<String>("APP").unwrap_or_else(|| {
+                    error!("APP Name configuration is not set");
                     std::process::exit(2);
                 });
 
-                let coll_name: String = config::get::<String>("APP").unwrap_or_else(|| {
-                    error!("Collection Name configuration is not set");
+                let object: String = config::get::<String>("OBJECT").unwrap_or_else(|| {
+                    error!("Object Name configuration is not set");
                     std::process::exit(2);
                 });
+
+                let namespace = config::get::<String>("NAMESPACE").unwrap_or_else(|| {
+                    error!("NAMESPACE configuration is not set");
+                    std::process::exit(2);
+                });
+
+                let coll_name = format!("{}.{}", namespace, object);
                 let database = client.database(&db_name);
                 let collection = database.collection(&coll_name);
 

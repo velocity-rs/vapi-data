@@ -24,4 +24,5 @@ regex = { version = "1.11.3" }
 mongodb = { version = "3.3.0" }
 futures = { version = "0.3.31" }
 bytes = { version = "1.10.1" }
+uuid = { version = "1.18.1", features = ["v4"] }
 

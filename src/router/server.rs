@@ -14,8 +14,8 @@ use thiserror::Error;
 use tokio::net::TcpListener;
 
 use super::state::AppState;
+use crate::handlers::create;
 use crate::{config, db::Repository, router::state};
-
 const ADDR: &str = "0.0.0.0";
 const PORT: &str = "12000";
 
@@ -115,7 +115,7 @@ impl ServiceRouter {
         info!("Find Path: {}", find_path);
 
         let router = Router::new()
-            .route(op_path.as_str(), post(todo))
+            .route(op_path.as_str(), post(create))
             .route(op_path.as_str(), put(todo))
             .route(op_path.as_str(), patch(todo))
             .route(op_path.as_str(), delete(todo))

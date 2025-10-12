@@ -31,7 +31,7 @@ pub async fn init() -> Result<Client, RepositoryError> {
     // create a sender channel to communicate with the monitor thread
     // let (error_sender, mut error_receiver) = tokio::sync::mpsc::channel(100);
     let (error_sender, mut error_receiver) = channel(100);
-    let monitor_interval = config::get::<u64>("MONITOR_INTERVAL").unwrap_or(10);
+    let monitor_interval = config::get::<u64>("MONITOR_INTERVAL").unwrap_or(180);
 
     let c = client.clone();
     tokio::spawn(async move {
