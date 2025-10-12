@@ -1,16 +1,19 @@
-use axum::http::StatusCode;
-use axum_thiserror::ErrorStatus;
 use thiserror::Error;
 
-#[derive(Debug, Error, ErrorStatus)]
+#[derive(Debug, Error)]
 pub enum StateError {
+    #[error("Initialization Error {0}")]
+    InitializationError(String),
     #[error("Invalid Path {0}")]
-    #[status(StatusCode::BAD_REQUEST)]
     InvalidPath(String),
     #[error("No repo found for the given state {0}")]
-    #[status(StatusCode::INTERNAL_SERVER_ERROR)]
     StateNotConfigured(String),
     #[error("State Error")]
-    #[status(StatusCode::BAD_REQUEST)]
     StateError,
+    #[error("Schema Load Failed")]
+    SchemaLoadFailed,
+    #[error("Schema Compile Failed")]
+    SchemaCompileFailed,
+    #[error("Repository Initialization Failed")]
+    RepoInitFailed,
 }

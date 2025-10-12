@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
 
-use persistence::RepositoryError;
+use crate::db::RepositoryError;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResponseMessage {

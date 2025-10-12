@@ -1,32 +1,56 @@
 use std::sync::Arc;
 
+use crate::config;
+use jsonschema::Validator as JsonValidator;
 use log::{error, info};
 use serde_json::Value;
 use tokio::{fs::File, io::AsyncReadExt};
 
-use super::SchemaValidator;
-
 use super::SchemaError;
+
+const SCHEMA_ENV_VAR: &str = "SCHEMA_FILE";
+
 #[derive(Debug)]
-pub struct InstanceValidators {
+pub struct Validator {
     object: SchemaValidator,
     search: Option<SchemaValidator>,
     patch: Option<SchemaValidator>,
 }
 
-impl InstanceValidators {
+#[derive(Debug, Clone)]
+pub(crate) struct SchemaValidator {
+    schema: Value,
+    validator: Arc<JsonValidator>,
+}
+
+impl SchemaValidator {
+    pub fn validate(&self, instance: Value) -> bool {
+        match jsonschema::validate(&self.schema, &instance) {
+            Ok(()) => {
+                log::info!("Validation successful");
+                true
+            }
+            Err(e) => {
+                log::error!("Validation failed {}", e.to_string());
+                false
+            }
+        }
+    }
+}
+
+impl Validator {
     pub async fn new() -> Result<Self, SchemaError> {
-        const INSTANCE_SCHEMA_FILE: &str = "instance_schema_file";
-        let instance_schema_file = match config::get::<String>(INSTANCE_SCHEMA_FILE) {
-            Some(url) => url,
+        let schema_file = match config::get::<String>(SCHEMA_ENV_VAR) {
+            Some(f) => f,
             None => {
-                return Err(SchemaError::ConfigInvalid(INSTANCE_SCHEMA_FILE.to_string()));
+                error!("Schema file not found");
+                return Err(SchemaError::ConfigInvalid(SCHEMA_ENV_VAR.into()));
             }
         };
 
-        let object_instance_schema = match Self::read_to_json(instance_schema_file).await {
+        let instance_schema = match Self::read_to_json(schema_file).await {
             Ok(value) => {
-                info!("Instance read into json");
+                info!("Schema read successfully");
                 value
             }
             Err(e) => {
@@ -34,7 +58,7 @@ impl InstanceValidators {
             }
         };
 
-        let object_instance_validator = match jsonschema::validator_for(&object_instance_schema) {
+        let validator = match jsonschema::validator_for(&instance_schema) {
             Ok(validator) => Arc::new(validator),
             Err(e) => {
                 error!("Error compiling Object Meta Schema for validation");
@@ -43,14 +67,14 @@ impl InstanceValidators {
         };
 
         let object_schema_validator = SchemaValidator {
-            schema: object_instance_schema,
-            validator: object_instance_validator,
+            schema: instance_schema,
+            validator,
         };
 
-        return Ok(InstanceValidators {
+        return Ok(Validator {
             object: object_schema_validator,
-            search: Option::None,
-            patch: Option::None,
+            search: None,
+            patch: None,
         });
     }
 

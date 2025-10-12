@@ -1,15 +1,20 @@
 use std::fmt::Display;
 
 use axum::{
-    Json, Router, debug_handler,
+    Json, Router,
     response::IntoResponse,
     routing::{delete, patch, post, put},
 };
 
+use axum_macros::debug_handler;
 use log::{debug, error, info};
+use mongodb::bson::de;
 use serde_json::json;
 use thiserror::Error;
 use tokio::net::TcpListener;
+
+use super::state::AppState;
+use crate::{config, db::Repository, router::state};
 
 const ADDR: &str = "0.0.0.0";
 const PORT: &str = "12000";
@@ -17,6 +22,7 @@ const PORT: &str = "12000";
 #[derive(Debug)]
 pub struct ServiceRouter {
     listener: TcpListener,
+    state: AppState,
 }
 
 impl Display for ServiceRouter {
@@ -44,24 +50,31 @@ pub enum RouterError {
     AddrBindingFailed(String),
     #[error("Could not retreive local address")]
     LocalAddressFailure(String),
+    #[error("Path Config Error. {0} not configured")]
+    PathConfigError(String),
 }
 
 impl ServiceRouter {
-    pub async fn new(addr: Option<String>, port: Option<String>) -> Result<Self, RouterError> {
+    pub async fn new() -> Result<Self, RouterError> {
+        info!("Initializing Service Router");
         debug!("Checking addr and port and setting to default values if none provided");
-        let server_addr = if let Some(a) = addr {
-            a
-        } else {
-            String::from(ADDR)
-        };
-        let server_port = if let Some(p) = port {
-            p
-        } else {
-            String::from(PORT)
-        };
+
+        let server_addr: String =
+            config::get::<String>("server.addr").unwrap_or_else(|| String::from(ADDR));
+
+        let server_port: String =
+            config::get::<String>("server.port").unwrap_or_else(|| String::from(PORT));
 
         debug!("Checking if configuration is valid and can be used");
         let server_config = [server_addr, server_port].join(":");
+
+        let state = match state::AppState::new().await {
+            Ok(state) => state,
+            Err(e) => {
+                error!("Error initializing state {}", e);
+                std::process::exit(2);
+            }
+        };
 
         match TcpListener::bind(server_config).await {
             Ok(tcp_listener) => match tcp_listener.local_addr() {
@@ -69,8 +82,9 @@ impl ServiceRouter {
                     debug!("TCP address {} successfully bound", addr);
                     let service_router = ServiceRouter {
                         listener: tcp_listener,
+                        state: state,
                     };
-
+                    info!("Service Router initialized");
                     return Ok(service_router);
                 }
                 Err(e) => {
@@ -85,26 +99,35 @@ impl ServiceRouter {
         }
     }
 
-    /// Return a core router for Create, Update, Patch, Delete
-    fn routes() -> Router {
-        Router::new()
-            .route("/{org}/{app}/{namespace}/{object}/{version}", post(todo))
-            .route("/{org}/{app}/{namespace}/{object}/{version}", put(todo))
-            .route("/{org}/{app}/{namespace}/{object}/{version}", patch(todo))
-            .route("/{org}/{app}/{namespace}/{object}/{version}", delete(todo))
-    }
-
-    fn find_routes() -> Router {
-        Router::new()
-            .route("/{org}/{app}/{namespace}/{object}/{version}", post(todo))
-            .route("/{org}/{app}/{object}/{version}", post(todo))
-    }
-
     pub async fn start(self) {
+        let path = if let Ok(path) = Self::get_path() {
+            info!("Using path: {}", path);
+            path
+        } else {
+            error!("Error getting path from configuration");
+            std::process::exit(3);
+        };
+        info!("Setting up routes for {}", path);
+
         let app = Router::new()
-            .nest("/api", Self::routes())
-            .nest("/api/findall", Self::find_routes())
-            .nest("/api/findone", Self::find_routes());
+            .route(
+                "/api/{org}/{app}/{namespace}/{object}/{version}",
+                post(todo),
+            )
+            .route("/api/{org}/{app}/{namespace}/{object}/{version}", put(todo))
+            .route(
+                "/api/{org}/{app}/{namespace}/{object}/{version}",
+                patch(todo),
+            )
+            .route(
+                "/api/{org}/{app}/{namespace}/{object}/{version}",
+                delete(todo),
+            )
+            .route(
+                "/api/find/{org}/{app}/{namespace}/{object}/{version}",
+                post(todo),
+            )
+            .with_state(self.state);
 
         info!("Starting server: Velocity API Data");
 
@@ -112,6 +135,18 @@ impl ServiceRouter {
             Ok(_) => info!("Server started"),
             Err(e) => error!("Error starting server {}", e),
         }
+    }
+
+    fn get_path() -> Result<String, RouterError> {
+        let org = config::get::<String>("ORG")
+            .ok_or_else(|| RouterError::PathConfigError("ORG".into()))?;
+        let app = config::get::<String>("APP")
+            .ok_or_else(|| RouterError::PathConfigError("APP".into()))?;
+        let namespace = config::get::<String>("NAMESPACE")
+            .ok_or_else(|| RouterError::PathConfigError("NAMESPACE".into()))?;
+        let version = config::get::<String>("VERSION")
+            .ok_or_else(|| RouterError::PathConfigError("VERSION".into()))?;
+        Ok(format!("/api/{}/{}/{}/{}", org, app, namespace, version))
     }
 }
 

@@ -1,3 +1,4 @@
+use serde::Serialize;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -14,4 +15,34 @@ pub enum SchemaError {
     CompileFailed(String),
     #[error("Error compiling validator")]
     ObjectInvalid,
+}
+
+#[derive(Serialize)]
+pub struct ValidationError {
+    pub req_id: String,
+    pub errors: Vec<Error>,
+}
+
+#[derive(Serialize)]
+pub struct Error {
+    pub message: String,
+    pub location: String,
+}
+
+impl ValidationError {
+    pub fn new(req_id: String, error_msgs: Vec<(String, String)>) -> Self {
+        let errors = error_msgs
+            .iter()
+            .map(|e| Error {
+                message: e.to_owned().0,
+                location: e.to_owned().1,
+            })
+            .collect::<Vec<Error>>();
+
+        Self { req_id, errors }
+    }
+
+    pub fn is_null(&self) -> bool {
+        self.errors.is_empty()
+    }
 }
