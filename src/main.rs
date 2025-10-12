@@ -1,15 +1,15 @@
 mod config;
 mod db;
 mod errors;
+mod handlers;
 mod log;
 mod response;
 mod router;
 mod schema;
+mod utils;
 
 use log::{error, info};
 use std::collections::HashMap;
-
-mod handlers;
 
 #[tokio::main]
 async fn main() {

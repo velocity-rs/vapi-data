@@ -11,8 +11,8 @@ use crate::config;
 #[derive(Debug)]
 pub struct Repository {
     client: Client,
-    database: Database,
-    collection: Collection<Document>,
+    pub database: Database,
+    pub collection: Collection<Document>,
 }
 
 impl Display for Repository {

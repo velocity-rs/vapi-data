@@ -107,31 +107,24 @@ impl ServiceRouter {
             error!("Error getting path from configuration");
             std::process::exit(3);
         };
-        info!("Setting up routes for {}", path);
 
-        let app = Router::new()
-            .route(
-                "/api/{org}/{app}/{namespace}/{object}/{version}",
-                post(todo),
-            )
-            .route("/api/{org}/{app}/{namespace}/{object}/{version}", put(todo))
-            .route(
-                "/api/{org}/{app}/{namespace}/{object}/{version}",
-                patch(todo),
-            )
-            .route(
-                "/api/{org}/{app}/{namespace}/{object}/{version}",
-                delete(todo),
-            )
-            .route(
-                "/api/find/{org}/{app}/{namespace}/{object}/{version}",
-                post(todo),
-            )
+        let op_path = format!("/api/{}", path);
+        let find_path = format!("/api/find/{}", path);
+
+        info!("Operation Path: {}", op_path);
+        info!("Find Path: {}", find_path);
+
+        let router = Router::new()
+            .route(op_path.as_str(), post(todo))
+            .route(op_path.as_str(), put(todo))
+            .route(op_path.as_str(), patch(todo))
+            .route(op_path.as_str(), delete(todo))
+            .route(find_path.as_str(), post(todo))
             .with_state(self.state);
 
         info!("Starting server: Velocity API Data");
 
-        match axum::serve(self.listener, app).await {
+        match axum::serve(self.listener, router).await {
             Ok(_) => info!("Server started"),
             Err(e) => error!("Error starting server {}", e),
         }
@@ -144,9 +137,14 @@ impl ServiceRouter {
             .ok_or_else(|| RouterError::PathConfigError("APP".into()))?;
         let namespace = config::get::<String>("NAMESPACE")
             .ok_or_else(|| RouterError::PathConfigError("NAMESPACE".into()))?;
+        let object = config::get::<String>("OBJECT")
+            .ok_or_else(|| RouterError::PathConfigError("OBJECT".into()))?;
         let version = config::get::<String>("VERSION")
             .ok_or_else(|| RouterError::PathConfigError("VERSION".into()))?;
-        Ok(format!("/api/{}/{}/{}/{}", org, app, namespace, version))
+        Ok(format!(
+            "{}/{}/{}/{}/{}",
+            org, app, namespace, object, version
+        ))
     }
 }
 
