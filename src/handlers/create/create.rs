@@ -1,28 +1,27 @@
+use crate::router::AppState;
 use axum::{
     Json,
     extract::{State, rejection::JsonRejection},
     http::StatusCode,
-    response::IntoResponse,
+    response::{IntoResponse, Response},
 };
-use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-
-use crate::router::AppState;
+use log::debug;
 use serde_json::{Value, json};
 
-pub async fn create(
-    state: State<AppState>,
-    body: Result<Json<Value>, JsonRejection>,
-) -> impl IntoResponse {
-    // Validate the payload against the schema
+pub async fn create(state: State<AppState>, body: Result<Json<Value>, JsonRejection>) -> Response {
+    // Run pre-validation hooks here if any (not implemented yet)
 
+    // Validate the payload against the schema
+    debug!("Validating payload: {:?}", body);
     let body = match body {
         Ok(json) => json.0,
         Err(e) => {
+            debug!("Failed to validate payload: {:?}", e);
             return (
-                axum::http::StatusCode::BAD_REQUEST,
+                StatusCode::BAD_REQUEST,
                 Json(json!({ "error": e.to_string() })),
-            );
+            )
+                .into_response();
         }
     };
 
@@ -34,18 +33,14 @@ pub async fn create(
             .iter_errors(&body)
             .map(|e| e.to_string())
             .collect();
-        return (
-            axum::http::StatusCode::BAD_REQUEST,
-            Json(json!({ "errors": errors })),
-        );
+        return (StatusCode::BAD_REQUEST, Json(json!({ "errors": errors }))).into_response();
     }
 
     // Insert the validated data into the database
     match state.repo.create(&body).await {
-        Ok(result) => (StatusCode::CREATED, Json(result)),
-        Err(e) => (
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": e.to_string() })),
-        ),
+        Ok(result) => {
+            return (StatusCode::CREATED, Json(result)).into_response();
+        }
+        Err(e) => return e.into_response(),
     }
 }

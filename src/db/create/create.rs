@@ -1,3 +1,4 @@
+use super::errors::CreateError;
 use crate::db::errors::MongoError;
 use crate::db::{Repository, RepositoryError};
 use crate::utils::bson;
@@ -7,7 +8,7 @@ use serde_json::Value;
 use uuid::Uuid;
 
 impl Repository {
-    pub async fn create(&self, value: &Value) -> Result<serde_json::Value, RepositoryError> {
+    pub async fn create(&self, value: &Value) -> Result<serde_json::Value, CreateError> {
         //add record_id created at and updated at fields
         let mut v = value.clone();
         let value = v.as_object_mut().unwrap();
@@ -19,8 +20,7 @@ impl Repository {
         value.insert("created_at".to_string(), Value::String(now.clone()));
         value.insert("updated_at".to_string(), Value::String(now));
 
-        let doc = bson::to_doc(value)
-            .map_err(|e| RepositoryError::BsonSerializationFailed(e.to_string()))?;
+        let doc = bson::to_doc(value).map_err(|e| CreateError::BodyParserFailed(e.to_string()))?;
 
         let comment = Some(bson!({ "app": "vapi-data" }));
 
@@ -39,7 +39,7 @@ impl Repository {
                 );
                 Ok(value.clone().into())
             }
-            Err(e) => Err(RepositoryError::DatabaseError(MongoError::from(e))),
+            Err(e) => Err(CreateError::from(e)),
         }
     }
 }

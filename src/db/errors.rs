@@ -1,7 +1,9 @@
 use std::fmt::Display;
 
+use axum::http::StatusCode;
+use axum_thiserror::ErrorStatus;
 use log::trace;
-use mongodb::error::WriteError;
+use mongodb::error::{Error, ErrorKind, WriteError, WriteFailure};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -22,11 +24,36 @@ impl Display for MongoError {
 impl From<mongodb::error::Error> for MongoError {
     fn from(e: mongodb::error::Error) -> Self {
         trace!("MongoDB Error: kind: {}, message: {}", e.kind, e);
-
-        return MongoError {
-            kind: e.kind.to_string(),
-            message: e.to_string(),
-        };
+        let kind = *e.kind;
+        match kind {
+            mongodb::error::ErrorKind::Write(write_error) => match write_error {
+                WriteFailure::WriteError(WriteError { code, message, .. }) => {
+                    if code == 11000 {
+                        MongoError {
+                            kind: "DuplicateKeyError".to_string(),
+                            message,
+                        }
+                    } else {
+                        MongoError {
+                            kind: "WriteError".to_string(),
+                            message,
+                        }
+                    }
+                }
+                WriteFailure::WriteConcernError(write_concern_error) => MongoError {
+                    kind: "WriteConcernError".to_string(),
+                    message: write_concern_error.message,
+                },
+                _ => MongoError {
+                    kind: "WriteFailure".to_string(),
+                    message: "Unexpected write failure".to_string(),
+                },
+            },
+            _ => MongoError {
+                kind: format!("{:?}", kind),
+                message: "Unexpected error".to_string(),
+            },
+        }
     }
 }
 
@@ -41,18 +68,9 @@ impl From<CursorError> for MongoError {
 
 #[derive(Debug, Error)]
 pub enum RepositoryError {
-    #[error("Bson Serialization Failed {0}")]
-    BsonSerializationFailed(String),
-    #[error("Bson DeSerialization Failed {0}")]
-    BsonDeSerializationFailed(String),
-    #[error("Error updating document {}: {}", .0.kind, .0.message)]
-    UpdateOneFailed(MongoError),
-    #[error("Error inserting document {}: {}", .0.kind, .0.message)]
-    InsertOneFailed(MongoError),
-    #[error("Error inserting documents {}: {}", .0.kind, .0.message)]
-    InsertManyFailed(MongoError),
     #[error("A client error has occured {}: {}", .0.kind, .0.message)]
     ClientError(MongoError),
+
     #[error("A database error has occured {}: {}", .0.kind, .0.message)]
     DatabaseError(MongoError),
     #[error("DB repository is unusable because its not initialized. HINT: Use the init() function")]
@@ -61,8 +79,6 @@ pub enum RepositoryError {
     InitializationFailed(MongoError),
     #[error("Repository configuration error: {}", 0)]
     ConfigError(String),
-    #[error("There are no documents in the result")]
-    NoDocument,
     #[error("Error while running find command {}: {}", .0.kind, .0.message)]
     FindFailed(MongoError),
     #[error("Error during watch {}: {}", .0.kind, .0.message)]
@@ -71,10 +87,6 @@ pub enum RepositoryError {
     SessionCreationError(MongoError),
     #[error("Error creating index {}: {}", .0.kind, .0.message)]
     IndexCreationError(MongoError),
-    #[error("Could not start transaction {0}")]
-    FailedStartingTransaction(String),
-    #[error("Count failed {0}")]
-    CountFailed(String),
     #[error("Repository is already initialized")]
     AlreadyInitialized,
     #[error("Cluster Healthcheck failed: {0}")]
