@@ -23,40 +23,44 @@ pub enum MiddlewareError {
 }
 
 impl MiddlewareError {
-    pub fn status_code(&self) -> (StatusCode, String) {
+    pub fn get_response_json(&self) -> Json<Value> {
         match self {
-            MiddlewareError::ReadFailed { error } => {
-                (StatusCode::BAD_REQUEST, "CRF0001".to_string())
-            }
-            MiddlewareError::BodySizeExceeded => (StatusCode::BAD_REQUEST, "CRF0002".to_string()),
-            MiddlewareError::ParseFailed { error } => {
-                (StatusCode::BAD_REQUEST, "CRF0003".to_string())
-            }
-            MiddlewareError::ValidationFailed { error } => {
-                (StatusCode::BAD_REQUEST, "CRF0004".to_string())
-            }
+            MiddlewareError::ReadFailed { error } => Json(json!({
+                "error": self.to_string(),
+                "cause": error.to_string(),
+                "code": "CRF0001".to_string(),
+                "status": StatusCode::BAD_REQUEST.as_u16(),
+            })),
+            MiddlewareError::BodySizeExceeded => Json(json!({
+                "error": self.to_string(),
+                "cause": "Request body size exceeds the allowed limit".to_string(),
+                "code": "CRF0002".to_string(),
+                "status": StatusCode::PAYLOAD_TOO_LARGE.as_u16(),
+            })),
+            MiddlewareError::ParseFailed { error } => Json(json!({
+                "error": self.to_string(),
+                "cause": error.to_string(),
+                "code": "CRF0003".to_string(),
+                "status": StatusCode::BAD_REQUEST.as_u16(),
+            })),
+            MiddlewareError::ValidationFailed { error } => Json(json!({
+                "error": self.to_string(),
+                "cause(s)": error,
+                "code": "CRF0004".to_string(),
+                "status": StatusCode::BAD_REQUEST.as_u16(),
+            })),
         }
-    }
-    fn get_response_json(&self) -> Json<Value> {
-        let (status, code) = self.status_code();
-        let error_string = self.to_string();
-        let source_error_string = self
-            .source()
-            .map(|e| e.to_string())
-            .unwrap_or_else(|| "No additional error information".to_string());
-        Json(json!({
-            "error": error_string,
-            "source_error": source_error_string,
-            "code": code,
-            "status": status.as_u16(),
-        }))
     }
 }
 
 impl IntoResponse for MiddlewareError {
     fn into_response(self) -> Response {
-        let (status, code) = self.status_code();
         let body = self.get_response_json();
-        (status, body).into_response()
+        let status = body.0.get("status").and_then(|s| s.as_u64()).unwrap_or(400) as u16;
+        (
+            StatusCode::from_u16(status).unwrap_or(StatusCode::BAD_REQUEST),
+            body,
+        )
+            .into_response()
     }
 }

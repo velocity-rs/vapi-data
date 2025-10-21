@@ -10,11 +10,13 @@ use axum::{
 use axum_macros::debug_handler;
 use log::{debug, error, info};
 use serde_json::json;
-use thiserror::Error;
+
 use tokio::net::TcpListener;
 
 use crate::{
-    config, handlers::create, router::middleware::validate_req_body, router::state::AppState,
+    config,
+    handlers::create,
+    router::{errors::ServerError, middleware::validate_req_body, state::AppState},
 };
 
 const ADDR: &str = "0.0.0.0";
@@ -45,18 +47,8 @@ impl Display for ServiceRouter {
     }
 }
 
-#[derive(Debug, Error)]
-pub enum RouterError {
-    #[error("Could not bind address")]
-    AddrBindingFailed(String),
-    #[error("Could not retreive local address")]
-    LocalAddressFailure(String),
-    #[error("Path Config Error. {0} not configured")]
-    PathConfigError(String),
-}
-
 impl ServiceRouter {
-    pub async fn new() -> Result<Self, RouterError> {
+    pub async fn new() -> Result<Self, ServerError> {
         info!("Initializing Service Router");
         debug!("Checking addr and port and setting to default values if none provided");
 
@@ -90,12 +82,12 @@ impl ServiceRouter {
                 }
                 Err(e) => {
                     error!("IO error occured retreiving local bind address {}", e);
-                    Err(RouterError::LocalAddressFailure(e.to_string()))
+                    Err(ServerError::LocalAddressFailure(e.to_string()))
                 }
             },
             Err(e) => {
                 error!("Error binding address {}", e);
-                return Err(RouterError::AddrBindingFailed(e.to_string()));
+                Err(ServerError::AddrBindingFailed(e.to_string()))
             }
         }
     }
@@ -137,17 +129,17 @@ impl ServiceRouter {
         }
     }
 
-    fn get_path() -> Result<String, RouterError> {
+    fn get_path() -> Result<String, ServerError> {
         let org = config::get::<String>("ORG")
-            .ok_or_else(|| RouterError::PathConfigError("ORG".into()))?;
+            .ok_or_else(|| ServerError::PathConfigError("ORG".into()))?;
         let app = config::get::<String>("APP")
-            .ok_or_else(|| RouterError::PathConfigError("APP".into()))?;
+            .ok_or_else(|| ServerError::PathConfigError("APP".into()))?;
         let namespace = config::get::<String>("NAMESPACE")
-            .ok_or_else(|| RouterError::PathConfigError("NAMESPACE".into()))?;
+            .ok_or_else(|| ServerError::PathConfigError("NAMESPACE".into()))?;
         let object = config::get::<String>("OBJECT")
-            .ok_or_else(|| RouterError::PathConfigError("OBJECT".into()))?;
+            .ok_or_else(|| ServerError::PathConfigError("OBJECT".into()))?;
         let version = config::get::<String>("VERSION")
-            .ok_or_else(|| RouterError::PathConfigError("VERSION".into()))?;
+            .ok_or_else(|| ServerError::PathConfigError("VERSION".into()))?;
         Ok(format!(
             "{}/{}/{}/{}/{}",
             org, app, namespace, object, version

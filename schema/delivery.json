@@ -5,8 +5,7 @@
     "properties": {
         "deliveryNo": {
             "type": "number",
-            "minimum": 1,
-            "maximum": 980
+            "minimum": 1
         }
     },
     "additionalProperties": false
