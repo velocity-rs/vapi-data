@@ -12,7 +12,7 @@ pub async fn create(state: State<AppState>, body: Result<Json<Value>, JsonReject
     // Run pre-validation hooks here if any (not implemented yet)
 
     // Validate the payload against the schema
-    debug!("Validating payload: {:?}", body);
+
     let body = match body {
         Ok(json) => json.0,
         Err(e) => {

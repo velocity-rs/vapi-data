@@ -1,0 +1,45 @@
+{
+    "preValidation": [
+        {
+            "logger": {
+                "type": "webhook",
+                "name": "log-hook",
+                "description": "Logs the incoming payload to an external logging service",
+                "enabled": true,
+                "failOnError": false,
+                "sync": false,
+                "timeout": 5000,
+                "url": "http://localhost:3001/log",
+                "method": "POST",
+                "headers": {
+                    "Content-Type": "application/json"
+                },
+                "body": {
+                    "payload": "{{payload}}",
+                    "timestamp": "{{timestamp}}",
+                    "headers": "{{headers}}"
+                },
+                "auth": {
+                    "type": "none"
+                },
+                "retry": {
+                    "maxRetries": 3,
+                    "delay": 1000,
+                    "backoffFactor": 2
+                },
+                "conditions": {
+                    "onPayloadField": {
+                        "field": "log",
+                        "equals": true
+                    },
+                    "onHeaders": {
+                        "X-Debug-Log": "true"
+                    }
+                }
+            }
+        }
+    ],
+    "postValidation": [],
+    "preActtion": [],
+    "postAction": []
+}

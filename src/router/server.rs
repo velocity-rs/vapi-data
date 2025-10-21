@@ -2,20 +2,21 @@ use std::fmt::Display;
 
 use axum::{
     Json, Router,
+    middleware::from_fn_with_state,
     response::IntoResponse,
     routing::{delete, patch, post, put},
 };
 
 use axum_macros::debug_handler;
 use log::{debug, error, info};
-use mongodb::bson::de;
 use serde_json::json;
 use thiserror::Error;
 use tokio::net::TcpListener;
 
-use super::state::AppState;
-use crate::handlers::create;
-use crate::{config, db::Repository, router::state};
+use crate::{
+    config, handlers::create, router::middleware::validate_req_body, router::state::AppState,
+};
+
 const ADDR: &str = "0.0.0.0";
 const PORT: &str = "12000";
 
@@ -68,7 +69,7 @@ impl ServiceRouter {
         debug!("Checking if configuration is valid and can be used");
         let server_config = [server_addr, server_port].join(":");
 
-        let state = match state::AppState::new().await {
+        let state = match AppState::new().await {
             Ok(state) => state,
             Err(e) => {
                 error!("Error initializing state {}", e);
@@ -115,11 +116,17 @@ impl ServiceRouter {
         info!("Find Path: {}", find_path);
 
         let router = Router::new()
-            .route(op_path.as_str(), post(create))
+            .route(
+                op_path.as_str(),
+                post(create).route_layer(from_fn_with_state(self.state.clone(), validate_req_body)),
+            )
             .route(op_path.as_str(), put(todo))
             .route(op_path.as_str(), patch(todo))
             .route(op_path.as_str(), delete(todo))
             .route(find_path.as_str(), post(todo))
+            //.layer(hooks::PreValidationLayer {
+            //    state: self.state.clone(),
+            //})
             .with_state(self.state);
 
         info!("Starting server: Velocity API Data");

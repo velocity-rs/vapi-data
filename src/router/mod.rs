@@ -1,4 +1,5 @@
 mod errors;
+mod middleware;
 mod server;
 mod state;
 
