@@ -12,9 +12,9 @@ const SCHEMA_ENV_VAR: &str = "SCHEMA_FILE";
 
 #[derive(Debug)]
 pub struct Validator {
-    object: SchemaValidator,
-    search: Option<SchemaValidator>,
-    patch: Option<SchemaValidator>,
+    object: Vec<SchemaValidator>,
+    search: Option<Vec<SchemaValidator>>,
+    patch: Option<Vec<SchemaValidator>>,
 }
 
 #[derive(Debug, Clone)]
@@ -48,7 +48,7 @@ impl Validator {
             }
         };
 
-        let instance_schema = match Self::read_to_json(schema_file).await {
+        let schemata = match Self::read_to_json(schema_file).await {
             Ok(value) => {
                 info!("Schema read successfully");
                 value
@@ -58,7 +58,27 @@ impl Validator {
             }
         };
 
-        let validator = match jsonschema::validator_for(&instance_schema) {
+        if !schemata.is_array() {
+            return Err(SchemaError::InvalidSchema {
+                schema_name: "object".to_string(),
+            });
+        }
+
+        object_validators = if let Some(schemata) = schemata.as_array() {
+            schemata.iter().map(|s| {
+                get_validator(s)
+            }).collect();
+
+        }
+
+        let object_schema = if let Some(object_schema) = schemata.get("object") {
+            object_schema
+        } else {
+            error!("Schema 'object' not found or invalid");
+            return Err(SchemaError::InvalidObjectSchema);
+        };
+
+        let object_validator = match jsonschema::validator_for(&object_schema) {
             Ok(validator) => Arc::new(validator),
             Err(e) => {
                 error!("Error compiling Object Meta Schema for validation");
@@ -66,16 +86,30 @@ impl Validator {
             }
         };
 
-        let object_schema_validator = SchemaValidator {
-            schema: instance_schema,
-            validator,
-        };
+        let object_schema_validator = SchemaValidator {};
 
         return Ok(Validator {
             object: object_schema_validator,
             search: None,
             patch: None,
         });
+    }
+
+    fn get_validator(s: &Value) -> Result<SchemaValidator, SchemaError> {
+
+        let name = if let Some(n) = s.get("name"){
+            if let Some(name) = n.as_str() {
+                name.to_string()
+            } else {
+                return Err(SchemaError::InvalidObjectSchema)
+            }
+        } else {
+            return Err(SchemaError::InvalidObjectSchema)
+        };
+
+        Err(SchemaError::InvalidObjectSchema)
+
+
     }
 
     async fn read_to_json(file_name: String) -> Result<Value, SchemaError> {

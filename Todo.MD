@@ -5,4 +5,4 @@ TODO: Schema has to be seperated for CRUD operations
 - Each Update operation should be strongly typed. 
 
 FIXME: CREATE error handing has to be customised. 
-
+Thiserror can be used but a into_json impl has to be created

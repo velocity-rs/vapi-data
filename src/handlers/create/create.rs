@@ -31,11 +31,11 @@ pub async fn create(state: State<AppState>, body: Result<Json<Value>, JsonReject
         }
     };
 
-    let is_valid = state.validator.is_valid(&body);
+    let is_valid = state.object_validator.is_valid(&body);
 
     if !is_valid {
         let errors: Vec<String> = state
-            .validator
+            .object_validator
             .iter_errors(&body)
             .map(|e| e.to_string())
             .collect();

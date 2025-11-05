@@ -1,5 +1,6 @@
 mod errors;
-mod instance;
+mod loader;
+mod object;
+mod validator;
 
 use errors::SchemaError;
-pub use instance::Validator;

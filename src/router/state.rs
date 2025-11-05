@@ -13,8 +13,8 @@ use crate::db::Repository;
 #[derive(Debug, Clone)]
 #[allow(unused)]
 pub struct AppState {
-    pub validator: Arc<Validator>,
-    pub schema: Value,
+    pub object_validator: Arc<Validator>,
+    pub object_schema: Value,
     pub repo: Arc<Repository>,
 }
 
@@ -43,9 +43,17 @@ impl AppState {
 
         trace!("Schema content: {}", schema);
 
+        let object_schema = if let Some(object_schema) = schema.get("object") {
+            trace!("Object schema found: {}", object_schema);
+            object_schema
+        } else {
+            error!("Schema 'object' not found or invalid");
+            return Err(StateError::InvalidObjectSchema);
+        };
+
         let validator = match jsonschema::draft202012::options()
             .should_validate_formats(true)
-            .build(&schema)
+            .build(object_schema)
         {
             Ok(validator) => {
                 debug!("Validator compiled");
@@ -71,8 +79,8 @@ impl AppState {
         trace!("Repository: {}", repo);
 
         Ok(AppState {
-            validator,
-            schema,
+            object_validator: validator,
+            object_schema: schema,
             repo,
         })
     }

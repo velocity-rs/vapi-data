@@ -5,16 +5,20 @@ use thiserror::Error;
 pub enum SchemaError {
     #[error("Schema URL Cofig is invalid `{0}`")]
     ConfigInvalid(String),
-    #[error("Unable to get response from url")]
+    #[error("Unable to get response from url `{0}`")]
     ResponseFailed(String),
     #[error("Unable to parse json")]
     ParsingFailed,
+    #[error("Schema is invalid `{schema_name}`")]
+    InvalidSchema { schema_name: String },
     #[error("Unable to read file {0}")]
     ReadFailed(String),
     #[error("Error compiling validator {0}")]
     CompileFailed(String),
     #[error("Error compiling validator")]
     ObjectInvalid,
+    #[error("Schema 'object' not found or invalid")]
+    InvalidObjectSchema,
 }
 
 #[derive(Serialize)]

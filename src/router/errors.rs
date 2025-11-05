@@ -10,6 +10,8 @@ pub enum StateError {
     SchemaCompileFailed,
     #[error("Repository Initialization Failed")]
     RepoInitFailed,
+    #[error("Schema 'object' not found or invalid")]
+    InvalidObjectSchema,
 }
 
 #[derive(Debug, Error)]

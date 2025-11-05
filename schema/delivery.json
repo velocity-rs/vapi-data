@@ -1,12 +1,19 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema#",
-    "title": "Delivery",
-    "type": "object",
-    "properties": {
-        "deliveryNo": {
-            "type": "number",
-            "minimum": 1
+    "object": [
+        {   
+            "name": "delivery",
+            "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema#",
+                "title": "Delivery",
+                "type": "object",
+                "properties": {
+                    "deliveryNo": {
+                        "type": "number",
+                        "minimum": 1
+                    }
+                },
+                "additionalProperties": false
+            }
         }
-    },
-    "additionalProperties": false
+    ]
 }

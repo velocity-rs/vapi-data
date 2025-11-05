@@ -1,6 +1,6 @@
 use config::{Case, Config, ConfigError};
-use log::{debug, error, info, trace};
-use std::{env, fmt::Debug, sync::OnceLock};
+use log::{error, info};
+use std::{fmt::Debug, sync::OnceLock};
 
 static CONFIG: OnceLock<Config> = OnceLock::new();
 
